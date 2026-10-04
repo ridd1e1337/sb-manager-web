@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.26.1
+
+- Migrate repository, installation and update URLs to ridd1e1337 on GitHub.
+- Update the Go module path and build metadata for the new repository owner.
+
 - Rework the WebUI around five task-oriented workspaces, a persistent navigation model, progressive node creation, explicit batch controls, human-readable task states and responsive mobile layouts.
 - Add capability-gated remote Agent self-updates with per-server controls, gray batch rollout, atomic binary replacement, supervisor restart and heartbeat confirmation.
 - Resume requeued local tasks after controller restarts, record their running timestamps, preserve the authenticated audit actor, and make local HTTPS status checks work with panel certificates.

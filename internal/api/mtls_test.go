@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
-	"github.com/R1ddle1337/sb-manager-web/internal/storage"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/storage"
 )
 
 func TestAgentCAIssuesClientCertificate(t *testing.T) {

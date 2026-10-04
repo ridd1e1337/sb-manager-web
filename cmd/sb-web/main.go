@@ -21,18 +21,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/agent"
-	"github.com/R1ddle1337/sb-manager-web/internal/api"
-	"github.com/R1ddle1337/sb-manager-web/internal/auth"
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
-	"github.com/R1ddle1337/sb-manager-web/internal/helper"
-	"github.com/R1ddle1337/sb-manager-web/internal/runner"
-	"github.com/R1ddle1337/sb-manager-web/internal/storage"
 	"github.com/mattn/go-isatty"
+	"github.com/ridd1e1337/sb-manager-web/internal/agent"
+	"github.com/ridd1e1337/sb-manager-web/internal/api"
+	"github.com/ridd1e1337/sb-manager-web/internal/auth"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/helper"
+	"github.com/ridd1e1337/sb-manager-web/internal/runner"
+	"github.com/ridd1e1337/sb-manager-web/internal/storage"
 )
 
 const defaultConfigPath = "/etc/sb-manager-web/config.json"
-const defaultInstallerURL = "https://github.com/R1ddle1337/sb-manager-web/raw/main/install.sh"
+const defaultInstallerURL = "https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh"
 
 const (
 	webLibDir       = "/usr/local/lib/sb-manager-web"

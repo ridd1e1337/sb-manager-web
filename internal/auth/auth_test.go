@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/storage"
-	"github.com/R1ddle1337/sb-manager-web/internal/types"
+	"github.com/ridd1e1337/sb-manager-web/internal/storage"
+	"github.com/ridd1e1337/sb-manager-web/internal/types"
 )
 
 func TestPasswordAndSession(t *testing.T) {

@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/agent"
-	"github.com/R1ddle1337/sb-manager-web/internal/api"
-	"github.com/R1ddle1337/sb-manager-web/internal/auth"
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
-	"github.com/R1ddle1337/sb-manager-web/internal/storage"
-	"github.com/R1ddle1337/sb-manager-web/internal/types"
+	"github.com/ridd1e1337/sb-manager-web/internal/agent"
+	"github.com/ridd1e1337/sb-manager-web/internal/api"
+	"github.com/ridd1e1337/sb-manager-web/internal/auth"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/storage"
+	"github.com/ridd1e1337/sb-manager-web/internal/types"
 )
 
 func TestAgentEnrollmentHeartbeatAndTask(t *testing.T) {

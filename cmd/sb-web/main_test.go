@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
 )
 
 func TestUpdateInstallerArgsCanDeferRestart(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/R1ddle1337/sb-manager-web
+module github.com/ridd1e1337/sb-manager-web
 
 go 1.18
 

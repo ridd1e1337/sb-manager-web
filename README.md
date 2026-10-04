@@ -1,6 +1,6 @@
 # sb-manager-web
 
-基于 Go 的 sing-box Web 控制层。它建立在 [`sb-manager`](https://github.com/R1ddle1337/sb-manager) 之上，不重写协议渲染、状态迁移、服务管理、校验或回滚逻辑。
+基于 Go 的 sing-box Web 控制层。它建立在 [`sb-manager`](https://github.com/ridd1e1337/sb-manager) 之上，不重写协议渲染、状态迁移、服务管理、校验或回滚逻辑。
 
 ## 当前状态
 
@@ -60,10 +60,10 @@ go run ./cmd/sb-web server --config /tmp/sb-web/config.json
 直接运行 Web 一键安装：
 
 ```bash
-curl -fsSL https://github.com/R1ddle1337/sb-manager-web/raw/main/install.sh | sudo bash
+curl -fsSL https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh | sudo bash
 ```
 
-如果服务器尚未安装 `sb-manager`，Web 安装器会下载并调用 [`sb-manager`](https://github.com/R1ddle1337/sb-manager) 独立仓库的官方安装器；不会把它的源码、服务定义或业务逻辑复制到 Web 项目。可以用 `SBM_INSTALL_REF`/`SBM_INSTALL_SHA256` 固定上游版本，用 `SBM_WEB_SB_INSTALL_URL` 指定内部镜像，或用 `SBM_WEB_AUTO_INSTALL_SB=0` 要求预先供应依赖。
+如果服务器尚未安装 `sb-manager`，Web 安装器会下载并调用 [`sb-manager`](https://github.com/ridd1e1337/sb-manager) 独立仓库的官方安装器；不会把它的源码、服务定义或业务逻辑复制到 Web 项目。可以用 `SBM_INSTALL_REF`/`SBM_INSTALL_SHA256` 固定上游版本，用 `SBM_WEB_SB_INSTALL_URL` 指定内部镜像，或用 `SBM_WEB_AUTO_INSTALL_SB=0` 要求预先供应依赖。
 
 安装器会校验 Web 发布包 SHA256，并且只为当前实际运行的 systemd 或 OpenRC 生成服务。`latest` 指向 GitHub Release，而不是 `main` 分支源码；因此推送源码后需要先创建 Release，安装器才会获取新二进制。当前预览版本为 `0.1.0-alpha.25`，开发时可以使用：
 
@@ -80,7 +80,7 @@ SBM_WEB_BINARY_URL=/path/to/sb-web SBM_WEB_SKIP_VERIFY=1 sudo -E bash install.sh
 ```bash
 sudo sb-web update
 # 指定版本
-sudo sb-web update --version 0.1.0-alpha.26
+sudo sb-web update --version 0.1.0-alpha.26.1
 ```
 
 控制台首页的“面板更新”区域可以检查最新 Release 并执行更新。更新会短暂重启 WebUI 服务；如果特权 helper 未运行，页面会给出上述 SSH 命令提示。面板更新使用 GitHub Release，不会把 `main` 分支未经发布的源码直接当作生产二进制。
@@ -89,7 +89,7 @@ sudo sb-web update --version 0.1.0-alpha.26
 
 ```bash
 # IP 或内网使用自签名证书
-curl -fsSL https://github.com/R1ddle1337/sb-manager-web/raw/main/install.sh | \
+curl -fsSL https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh | \
   sudo bash -s -- --panel-tls self-signed --panel-domain 203.0.113.10
 
 # Let's Encrypt HTTP-01，域名或已获支持的公网 IP，要求 80 端口可达
@@ -119,7 +119,7 @@ sudo sb-web uninstall --purge --yes # 删除 Web 程序及全部 Web 数据
 控制端登录后创建一次性 enrollment token，然后在新服务器执行：
 
 ```bash
-curl -fsSL https://github.com/R1ddle1337/sb-manager-web/raw/main/install.sh | sudo bash -s -- --agent https://panel.example.com TOKEN
+curl -fsSL https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh | sudo bash -s -- --agent https://panel.example.com TOKEN
 ```
 
 面板生成的命令会包含确切 Release 安装参数；Agent 主动连接控制端，不需要开放远程 SSH 管理端口。长期身份由每台服务器独立 Ed25519 私钥提供，私钥保存在本机。也可以先安装后手动执行 `sb-web join`。

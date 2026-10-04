@@ -1,6 +1,6 @@
-VERSION ?= 0.1.0
+VERSION ?= $(shell cat VERSION)
 GO ?= go
-LDFLAGS := -s -w -X main.version=$(VERSION) -X github.com/R1ddle1337/sb-manager-web/internal/agent.Version=$(VERSION)
+LDFLAGS := -s -w -X main.version=$(VERSION) -X github.com/ridd1e1337/sb-manager-web/internal/agent.Version=$(VERSION)
 
 .PHONY: all fmt test vet build release clean
 

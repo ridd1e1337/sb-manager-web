@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/runner"
+	"github.com/ridd1e1337/sb-manager-web/internal/runner"
 )
 
 type request struct {

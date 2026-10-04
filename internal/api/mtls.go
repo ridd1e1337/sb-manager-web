@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
 )
 
 type agentCA struct {

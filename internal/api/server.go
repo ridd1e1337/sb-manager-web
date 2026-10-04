@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/auth"
-	"github.com/R1ddle1337/sb-manager-web/internal/config"
-	"github.com/R1ddle1337/sb-manager-web/internal/helper"
-	"github.com/R1ddle1337/sb-manager-web/internal/runner"
-	"github.com/R1ddle1337/sb-manager-web/internal/storage"
-	"github.com/R1ddle1337/sb-manager-web/internal/types"
-	"github.com/R1ddle1337/sb-manager-web/web"
+	"github.com/ridd1e1337/sb-manager-web/internal/auth"
+	"github.com/ridd1e1337/sb-manager-web/internal/config"
+	"github.com/ridd1e1337/sb-manager-web/internal/helper"
+	"github.com/ridd1e1337/sb-manager-web/internal/runner"
+	"github.com/ridd1e1337/sb-manager-web/internal/storage"
+	"github.com/ridd1e1337/sb-manager-web/internal/types"
+	"github.com/ridd1e1337/sb-manager-web/web"
 )
 
 const (
@@ -1509,7 +1509,7 @@ func (s *Server) enrollment(w http.ResponseWriter, r *http.Request) {
 	if r.TLS != nil || strings.EqualFold(strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0]), "https") {
 		baseURL = "https://" + r.Host
 	}
-	installURL := "https://github.com/R1ddle1337/sb-manager-web/raw/main/install.sh"
+	installURL := "https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh"
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"expires_at":   expires,
 		"token":        token,
@@ -1517,7 +1517,7 @@ func (s *Server) enrollment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const webRepository = "R1ddle1337/sb-manager-web"
+const webRepository = "ridd1e1337/sb-manager-web"
 
 type webRelease struct {
 	TagName     string `json:"tag_name"`

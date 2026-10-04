@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R1ddle1337/sb-manager-web/internal/types"
+	"github.com/ridd1e1337/sb-manager-web/internal/types"
 )
 
 func TestCancelAndCloneTask(t *testing.T) {
