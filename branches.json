@@ -1,0 +1,19 @@
+[
+  {
+    "name": "main",
+    "commit": {
+      "sha": "04b70a52e7a0eb1e600cc329382e39b4736e6841",
+      "url": "https://api.github.com/repos/wugan666/sb-manager-web/commits/04b70a52e7a0eb1e600cc329382e39b4736e6841"
+    },
+    "protected": false,
+    "protection": {
+      "enabled": false,
+      "required_status_checks": {
+        "enforcement_level": "off",
+        "contexts": [],
+        "checks": []
+      }
+    },
+    "protection_url": "https://api.github.com/repos/wugan666/sb-manager-web/branches/main/protection"
+  }
+]
