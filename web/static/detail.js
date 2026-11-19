@@ -9,20 +9,6 @@
     return data;
   };
   const show = (message, success = false) => { $('alerts').innerHTML = `<div class="notice ${success ? 'success' : 'error'}">${escapeHTML(message)}</div>`; };
-  // sb-manager alpha.74+: users[].limits with automatic suspension reasons.
-  const userStatus = (user) => {
-    const reason = { quota: '流量用尽', expired: '已到期', ip: '在线 IP 超限' }[user.limits?.suspended];
-    if (reason) return `<span class="bad">暂停 · ${reason}</span>`;
-    return user.enabled ? '<span class="ok">启用</span>' : '<span class="bad">停用</span>';
-  };
-  const userLimits = (limits) => {
-    if (!limits) return '—';
-    const parts = [];
-    if (limits.quota_bytes) parts.push(`配额 ${(limits.quota_bytes / 1073741824).toFixed(1)} GiB${limits.reset_day ? ` · 每月 ${limits.reset_day} 日重置` : ''}`);
-    if (limits.expires_at) parts.push(`到期 ${new Date(limits.expires_at * 1000).toISOString().slice(0, 10)}`);
-    if (limits.ip_limit) parts.push(`IP ≤ ${limits.ip_limit}`);
-    return parts.join(' / ') || '—';
-  };
   const serverID = document.body.dataset.serverId || '';
   const nodeID = document.body.dataset.nodeId || '';
   const server = encodeURIComponent(serverID);
@@ -105,7 +91,7 @@
       panel.className = 'panel';
       document.querySelector('.detail-shell').appendChild(panel);
     }
-    panel.innerHTML = `<div class="panel-header"><div><p class="eyebrow">ACCESS</p><h2>节点用户</h2></div><span class="muted">凭据仅在目标服务器生成</span></div>${users.length ? `<div class="table-wrap"><table><thead><tr><th>ID</th><th>名称</th><th>状态</th><th>限额</th><th>操作</th></tr></thead><tbody>${users.map((user) => `<tr><td><code>${escapeHTML(user.id)}</code></td><td>${escapeHTML(user.name)}</td><td>${userStatus(user)}</td><td>${escapeHTML(userLimits(user.limits))}</td><td><button class="user-action" data-user-id="${escapeHTML(user.id)}" data-user-operation="${user.enabled ? 'disable' : 'enable'}">${user.enabled ? '停用' : '启用'}</button><button class="user-action" data-user-id="${escapeHTML(user.id)}" data-user-operation="rotate">轮换</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">暂无用户快照。</p>'}`;
+    panel.innerHTML = `<div class="panel-header"><div><p class="eyebrow">ACCESS</p><h2>节点用户</h2></div><span class="muted">凭据仅在目标服务器生成</span></div>${users.length ? `<div class="table-wrap"><table><thead><tr><th>ID</th><th>名称</th><th>状态</th><th>操作</th></tr></thead><tbody>${users.map((user) => `<tr><td><code>${escapeHTML(user.id)}</code></td><td>${escapeHTML(user.name)}</td><td>${user.enabled ? '<span class="ok">启用</span>' : '<span class="bad">停用</span>'}</td><td><button class="user-action" data-user-id="${escapeHTML(user.id)}" data-user-operation="${user.enabled ? 'disable' : 'enable'}">${user.enabled ? '停用' : '启用'}</button><button class="user-action" data-user-id="${escapeHTML(user.id)}" data-user-operation="rotate">轮换</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">暂无用户快照。</p>'}`;
     panel.querySelectorAll('.user-action').forEach((button) => button.addEventListener('click', async () => {
       if (button.dataset.userOperation === 'rotate' && !window.confirm('确认轮换该用户凭据？旧分享链接会立即失效。')) return;
       try { await json(`/api/v1/servers/${server}/nodes/${encodeURIComponent(nodeID)}/users/${encodeURIComponent(button.dataset.userId)}/${button.dataset.userOperation}`, { method: 'POST', headers: { 'X-CSRF-Token': csrf() }, body: '{}' }); show(`用户任务已创建。`, true); setTimeout(loadNode, 800); } catch (error) { show(error.message); }
@@ -148,9 +134,5 @@
       setTimeout(loadNode, 900);
     } catch (error) { show(error.message); } finally { button.disabled = false; }
   });
-  const operationsLink = document.createElement('a');
-  operationsLink.href = `/operations?server=${encodeURIComponent(serverID)}`;
-  operationsLink.textContent = '此服务器运维 →';
-  document.querySelector('.detail-header')?.append(operationsLink);
   if (nodeID) loadNode().catch((error) => show(error.message)); else loadServer().catch((error) => show(error.message));
 })();

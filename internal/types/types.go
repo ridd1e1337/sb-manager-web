@@ -35,9 +35,6 @@ type Server struct {
 }
 
 type Task struct {
-	Private             bool           `json:"private,omitempty"`
-	Actor               string         `json:"actor,omitempty"`
-	ManualRecovery      bool           `json:"manual_recovery,omitempty"`
 	ID                  string         `json:"id"`
 	ServerID            string         `json:"server_id"`
 	Action              string         `json:"action"`

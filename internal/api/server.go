@@ -142,7 +142,7 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 	if version == "" {
 		version = "dev"
 	}
-	_ = tmpl.Execute(w, map[string]any{"Version": version, "Airport": s.cfg.Airport})
+	_ = tmpl.Execute(w, map[string]any{"Version": version})
 }
 
 func (s *Server) detailPage(w http.ResponseWriter, r *http.Request) {
@@ -372,7 +372,7 @@ func (s *Server) api(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if r.Method != http.MethodGet && r.URL.Path != "/api/v1/password" && r.URL.Path != "/api/v1/operations" && !strings.HasPrefix(r.URL.Path, "/api/v1/2fa/") && s.auth.Role(session.Username) == "viewer" {
+	if r.Method != http.MethodGet && r.URL.Path != "/api/v1/password" && !strings.HasPrefix(r.URL.Path, "/api/v1/2fa/") && s.auth.Role(session.Username) == "viewer" {
 		writeError(w, http.StatusForbidden, "ROLE_FORBIDDEN", "当前账号只有只读权限", nil)
 		return
 	}
@@ -389,8 +389,6 @@ func (s *Server) api(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
-	case "/api/v1/operations":
-		s.operationsAPI(w, r, session)
 	case "/api/v1/session":
 		user, _ := s.store.GetUser(session.Username)
 		writeJSON(w, http.StatusOK, map[string]any{"username": session.Username, "role": s.auth.Role(session.Username), "totp_enabled": user.TOTPEnabled, "csrf": session.CSRF})
@@ -556,7 +554,7 @@ func (s *Server) databaseBackup(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	s.recordAudit(session.Username, "database.backup", nil, nil, "success")
-	writeJSON(w, http.StatusCreated, map[string]any{"path": destination, "key_path": destination + ".secrets.key"})
+	writeJSON(w, http.StatusCreated, map[string]any{"path": destination})
 }
 
 func (s *Server) backupsAPI(w http.ResponseWriter, r *http.Request, session types.Session) {
@@ -1139,10 +1137,6 @@ func (s *Server) batchAction(w http.ResponseWriter, r *http.Request, session typ
 		writeError(w, http.StatusBadRequest, "SENSITIVE_ACTION_DIRECT_ONLY", "该操作不支持批量队列，请使用专用接口", nil)
 		return
 	}
-	if op, ok := runner.LookupOperation(request.Action); ok && op.AdminOnly && s.auth.Role(session.Username) != "admin" {
-		writeError(w, 403, "ROLE_FORBIDDEN", "只有管理员可执行该批量操作", nil)
-		return
-	}
 	if request.Strategy == "" {
 		request.Strategy = "all"
 	}
@@ -1177,11 +1171,6 @@ func (s *Server) batchAction(w http.ResponseWriter, r *http.Request, session typ
 		} else if serverID != types.ServerLocal && !server.Online {
 			continue
 		}
-		if op, ok := runner.LookupOperation(request.Action); ok {
-			if s.operationCompatibility(server, op) != nil {
-				continue
-			}
-		}
 		eligible = append(eligible, serverID)
 	}
 	limit := len(eligible)
@@ -1206,10 +1195,6 @@ func (s *Server) batchAction(w http.ResponseWriter, r *http.Request, session typ
 			continue
 		}
 		task := types.Task{ID: "task_" + id, ServerID: serverID, Action: request.Action, Args: request.Args, Status: types.TaskPending, CreatedAt: time.Now().UTC(), IdempotencyKey: "batch_" + batchID + "_" + serverID, BatchID: "batch_" + batchID, ExpectedStateDigest: expectedDigestForAction(server, request.Action)}
-		task.Actor = session.Username
-		if op, ok := runner.LookupOperation(request.Action); ok {
-			task.ManualRecovery = !op.ReadOnly
-		}
 		if s.store.PutTask(task) != nil {
 			continue
 		}
@@ -1251,14 +1236,6 @@ func (s *Server) batchPreflight(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusForbidden, "ROLE_FORBIDDEN", "只有管理员可以更新 Agent", nil)
 		return
 	}
-	if sensitiveAction(request.Action) {
-		writeError(w, 400, "SENSITIVE_ACTION_DIRECT_ONLY", "私有操作只支持单机执行", nil)
-		return
-	}
-	if op, ok := runner.LookupOperation(request.Action); ok && op.AdminOnly && s.auth.Role(session.Username) != "admin" {
-		writeError(w, 403, "ROLE_FORBIDDEN", "只有管理员可执行该批量操作", nil)
-		return
-	}
 	if err := validateQueuedAction(request.Action, request.Args); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
@@ -1284,13 +1261,6 @@ func (s *Server) batchPreflight(w http.ResponseWriter, r *http.Request, session 
 			continue
 		}
 		item := candidate{ID: server.ID, Name: server.Name, Online: server.Online, StateDigest: server.StateDigest, CoreVersion: server.CoreVersion, AgentVersion: server.AgentVersion}
-		if op, ok := runner.LookupOperation(request.Action); ok {
-			if err := s.operationCompatibility(server, op); err != nil {
-				item.Reason = err.Error()
-				result.Skipped = append(result.Skipped, item)
-				continue
-			}
-		}
 		if request.Action == "agent.update" && server.ID == types.ServerLocal {
 			item.Reason = "local controller is updated separately"
 			result.Skipped = append(result.Skipped, item)
@@ -1861,12 +1831,7 @@ func (s *Server) createAction(w http.ResponseWriter, r *http.Request, serverID s
 }
 
 func (s *Server) enqueueAction(w http.ResponseWriter, serverID string, request actionRequest, session types.Session) {
-	op, catalogOperation := runner.LookupOperation(request.Action)
-	if catalogOperation && ((op.AdminOnly && s.auth.Role(session.Username) != "admin") || (!op.ReadOnly && s.auth.Role(session.Username) == "viewer")) {
-		writeError(w, http.StatusForbidden, "ROLE_FORBIDDEN", "当前账号不能执行此操作", nil)
-		return
-	}
-	if sensitiveAction(request.Action) && !(catalogOperation && op.Private) {
+	if sensitiveAction(request.Action) {
 		writeError(w, http.StatusBadRequest, "SENSITIVE_ACTION_DIRECT_ONLY", "该操作必须使用专用接口，避免凭据进入任务队列", nil)
 		return
 	}
@@ -1887,12 +1852,6 @@ func (s *Server) enqueueAction(w http.ResponseWriter, serverID string, request a
 		writeError(w, http.StatusConflict, "AGENT_OFFLINE", "服务器当前离线", nil)
 		return
 	}
-	if catalogOperation {
-		if err := s.operationCompatibility(server, op); err != nil {
-			writeError(w, http.StatusConflict, "OPERATION_UNAVAILABLE", err.Error(), nil)
-			return
-		}
-	}
 	if request.Action == "agent.update" {
 		version, _ := request.Args["version"].(string)
 		if serverID == types.ServerLocal {
@@ -1909,10 +1868,6 @@ func (s *Server) enqueueAction(w http.ResponseWriter, serverID string, request a
 		}
 	}
 	if existing, err := s.store.FindTaskByIdempotency(request.IdempotencyKey); err == nil {
-		if existing.ServerID != serverID || existing.Action != request.Action || (existing.Actor != "" && existing.Actor != session.Username) {
-			writeError(w, http.StatusConflict, "IDEMPOTENCY_CONFLICT", "请求标识已用于其他操作", nil)
-			return
-		}
 		writeJSON(w, http.StatusOK, existing)
 		return
 	}
@@ -1922,21 +1877,6 @@ func (s *Server) enqueueAction(w http.ResponseWriter, serverID string, request a
 		return
 	}
 	task := types.Task{ID: "task_" + id, ServerID: serverID, Action: request.Action, Args: request.Args, Status: types.TaskPending, CreatedAt: time.Now().UTC(), IdempotencyKey: request.IdempotencyKey, ExpectedStateDigest: expectedDigestForAction(server, request.Action)}
-	task.Actor = session.Username
-	if catalogOperation {
-		task.ManualRecovery = !op.ReadOnly
-	}
-	if catalogOperation && op.Private {
-		payload, err := json.Marshal(request.Args)
-		if err == nil {
-			err = s.store.PutTaskSecret(task.ID, "args", payload, time.Time{})
-		}
-		if err != nil {
-			writeError(w, 500, "STORAGE_ERROR", "无法保存私有任务", nil)
-			return
-		}
-		task.Private, task.Args = true, nil
-	}
 	if err := s.store.PutTask(task); err != nil {
 		writeError(w, http.StatusInternalServerError, "STORAGE_ERROR", err.Error(), nil)
 		return
@@ -1949,9 +1889,6 @@ func (s *Server) enqueueAction(w http.ResponseWriter, serverID string, request a
 }
 
 func sensitiveAction(action string) bool {
-	if op, ok := runner.LookupOperation(action); ok && op.Private {
-		return true
-	}
 	switch action {
 	case "cert.setup-cloudflare", "notify.configure", "tunnel.fixed", "tunnel.set-token", "subscription.revoke", "restore":
 		return true
@@ -1996,9 +1933,6 @@ func expectedDigest(server types.Server) string {
 }
 
 func expectedDigestForAction(server types.Server, action string) string {
-	if op, ok := runner.LookupOperation(action); ok && op.ReadOnly {
-		return ""
-	}
 	if action == "agent.update" {
 		return ""
 	}
@@ -2035,33 +1969,15 @@ func (s *Server) executeLocal(id string) {
 		s.finishTask(id, false, "", "batch stopped after reaching failure threshold")
 		return
 	}
-	args, err := s.taskArguments(task)
+	result, err := s.runLocal(task.Action, task.Args)
 	if err != nil {
-		s.finishTask(id, false, "", "无法读取任务参数")
+		s.finishTask(id, false, result.Stdout, redact(result.Stderr+"\n"+err.Error()))
 		return
 	}
-	result, err := s.runLocal(task.Action, args)
-	if err != nil {
-		s.finishTask(id, false, result.Stdout, result.Stderr+"\n"+err.Error())
-		return
-	}
-	s.finishTask(id, true, result.Stdout, result.Stderr)
+	s.finishTask(id, true, redact(result.Stdout), redact(result.Stderr))
 }
 
 func (s *Server) finishTask(id string, success bool, output, problem string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	original, err := s.store.GetTask(id)
-	if err != nil {
-		return
-	}
-	if original.Status != types.TaskRunning && original.Status != types.TaskPending {
-		return
-	}
-	output, problem, err = s.protectTaskResult(original, output, problem)
-	if err != nil {
-		success = false
-	}
 	_, _ = s.store.UpdateTask(id, func(task *types.Task) error {
 		now := time.Now().UTC()
 		task.FinishedAt = &now
@@ -2110,20 +2026,12 @@ func (s *Server) taskAPI(w http.ResponseWriter, r *http.Request, session types.S
 		writeJSON(w, http.StatusOK, task)
 		return
 	}
-	if len(parts) == 5 && parts[4] == "private-result" {
-		s.privateTaskResult(w, r, session, task)
-		return
-	}
 	if len(parts) != 5 || r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "只支持 GET、POST /cancel 或 /retry", nil)
 		return
 	}
 	if task.Action == "agent.update" && s.auth.Role(session.Username) != "admin" {
 		writeError(w, http.StatusForbidden, "ROLE_FORBIDDEN", "只有管理员可以管理 Agent 更新任务", nil)
-		return
-	}
-	if op, ok := runner.LookupOperation(task.Action); ok && op.AdminOnly && s.auth.Role(session.Username) != "admin" {
-		writeError(w, 403, "ROLE_FORBIDDEN", "只有管理员可管理该任务", nil)
 		return
 	}
 	switch parts[4] {
@@ -2140,12 +2048,6 @@ func (s *Server) taskAPI(w http.ResponseWriter, r *http.Request, session types.S
 		if serverErr != nil {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "服务器不存在", nil)
 			return
-		}
-		if op, ok := runner.LookupOperation(task.Action); ok {
-			if err := s.operationCompatibility(server, op); err != nil {
-				writeError(w, 409, "OPERATION_UNAVAILABLE", err.Error(), nil)
-				return
-			}
 		}
 		key := r.Header.Get("Idempotency-Key")
 		if key == "" {
@@ -2283,17 +2185,8 @@ func (s *Server) agentAPI(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "STORAGE_ERROR", err.Error(), nil)
 			return
 		}
-		args, err := s.taskArguments(task)
-		if err != nil {
-			s.finishTask(task.ID, false, "", "无法读取任务参数")
-			writeError(w, 500, "STORAGE_ERROR", "无法读取任务参数", nil)
-			return
-		}
-		task.Args = args
 		writeJSON(w, http.StatusOK, map[string]any{"task": task})
 	case "/api/v1/agent/result":
-		s.mu.Lock()
-		defer s.mu.Unlock()
 		if r.Method != http.MethodPost {
 			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "只支持 POST", nil)
 			return
@@ -2311,15 +2204,6 @@ func (s *Server) agentAPI(w http.ResponseWriter, r *http.Request) {
 		task, err := s.store.GetTask(result.TaskID)
 		if err != nil || task.ServerID != server.ID {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "任务不存在或目标不匹配", nil)
-			return
-		}
-		if task.Status != types.TaskRunning {
-			writeError(w, 409, "TASK_NOT_RUNNING", "任务已经结束或尚未领取", nil)
-			return
-		}
-		result.Output, result.Error, err = s.protectTaskResult(task, result.Output, result.Error)
-		if err != nil {
-			writeError(w, 500, "STORAGE_ERROR", "无法保存私有结果", nil)
 			return
 		}
 		_, err = s.store.UpdateTask(result.TaskID, func(task *types.Task) error {

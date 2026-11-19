@@ -319,7 +319,7 @@ func (a *Agent) heartbeat(ctx context.Context) error {
 	managerResult, _ := a.runner.Run(ctx, "version")
 	body := map[string]any{
 		"agent_version":      Version,
-		"agent_features":     []string{"self_update_v1", "operations_v2"},
+		"agent_features":     []string{"self_update_v1"},
 		"sb_manager_version": strings.TrimSpace(managerResult.Stdout),
 		"core_version":       capsValue(caps, "version"),
 		"backend":            "",

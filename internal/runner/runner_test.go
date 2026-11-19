@@ -168,7 +168,7 @@ func TestAdditionalActionValidation(t *testing.T) {
 	}{
 		{"node.enable", map[string]any{"id": "INVALID ID"}},
 		{"api.enable", map[string]any{"port": float64(70000)}},
-		{"subscription.create", map[string]any{"duration": "never", "mode": "mixed", "live": false}},
+		{"subscription.create", map[string]any{"duration": "30d", "mode": "mixed"}},
 		{"cert.issue", map[string]any{"domain": "not-a-domain"}},
 		{"mux.route.add", map[string]any{"node_id": "node-a", "sni": "invalid"}},
 		{"tunnel.set-token", map[string]any{"token": "bad\ntoken"}},

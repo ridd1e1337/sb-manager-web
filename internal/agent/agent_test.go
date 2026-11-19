@@ -142,7 +142,7 @@ esac
 		t.Fatal(err)
 	}
 	updatedServer, err := store.GetServer(remoteID)
-	if err != nil || len(updatedServer.AgentFeatures) != 2 || updatedServer.AgentFeatures[0] != "self_update_v1" || updatedServer.AgentFeatures[1] != "operations_v2" {
+	if err != nil || len(updatedServer.AgentFeatures) != 1 || updatedServer.AgentFeatures[0] != "self_update_v1" {
 		t.Fatalf("Agent features were not reported: %#v err=%v", updatedServer.AgentFeatures, err)
 	}
 	completed, err := store.GetTask(successTask.ID)

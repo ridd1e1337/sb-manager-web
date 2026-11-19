@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,29 +33,20 @@ type TaskConfig struct {
 	FailureStopPct int           `json:"failure_stop_percent"`
 }
 
-// AirportConfig links independently authenticated commerce/node applications.
-// Customer accounts and billing never enter the privileged sb task channel.
-type AirportConfig struct {
-	PortalURL     string `json:"portal_url,omitempty"`
-	StoreAdminURL string `json:"store_admin_url,omitempty"`
-	NodeAdminURL  string `json:"node_admin_url,omitempty"`
-}
-
 type Config struct {
-	ConfigPath   string        `json:"-"`
-	WebVersion   string        `json:"-"`
-	Listen       string        `json:"listen"`
-	SBPath       string        `json:"sb_path"`
-	StateFile    string        `json:"state_file"`
-	DataDir      string        `json:"data_dir"`
-	Database     string        `json:"database"`
-	LogDir       string        `json:"log_dir"`
-	BackupDir    string        `json:"backup_dir"`
-	HelperSocket string        `json:"helper_socket"`
-	TLS          TLSConfig     `json:"tls"`
-	Agent        AgentConfig   `json:"agent"`
-	Tasks        TaskConfig    `json:"tasks"`
-	Airport      AirportConfig `json:"airport,omitempty"`
+	ConfigPath   string      `json:"-"`
+	WebVersion   string      `json:"-"`
+	Listen       string      `json:"listen"`
+	SBPath       string      `json:"sb_path"`
+	StateFile    string      `json:"state_file"`
+	DataDir      string      `json:"data_dir"`
+	Database     string      `json:"database"`
+	LogDir       string      `json:"log_dir"`
+	BackupDir    string      `json:"backup_dir"`
+	HelperSocket string      `json:"helper_socket"`
+	TLS          TLSConfig   `json:"tls"`
+	Agent        AgentConfig `json:"agent"`
+	Tasks        TaskConfig  `json:"tasks"`
 }
 
 func Defaults() Config {
@@ -110,15 +100,6 @@ func Load(path string) (Config, error) {
 	}
 	if cfg.TLS.RequireAgentMTLS && !cfg.TLS.Enabled {
 		return Config{}, errors.New("tls.require_agent_mtls requires tls.enabled")
-	}
-	for name, value := range map[string]string{"portal_url": cfg.Airport.PortalURL, "store_admin_url": cfg.Airport.StoreAdminURL, "node_admin_url": cfg.Airport.NodeAdminURL} {
-		if value == "" {
-			continue
-		}
-		parsed, err := url.Parse(value)
-		if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-			return Config{}, fmt.Errorf("airport.%s must be an HTTPS URL without credentials, query or fragment", name)
-		}
 	}
 	return cfg, nil
 }

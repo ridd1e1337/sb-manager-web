@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"crypto/cipher"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -15,11 +14,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-type Store struct {
-	db         *sql.DB
-	secretAEAD cipher.AEAD
-	secretKey  []byte
-}
+type Store struct{ db *sql.DB }
 
 const schema = `
 PRAGMA journal_mode=WAL;
@@ -35,7 +30,6 @@ CREATE TABLE IF NOT EXISTS enrollments (hash TEXT PRIMARY KEY, expires_at TEXT N
 CREATE TABLE IF NOT EXISTS audit (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, data BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS api_tokens (id TEXT PRIMARY KEY, data BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS metrics (recorded_at TEXT PRIMARY KEY, data BLOB NOT NULL);
-CREATE TABLE IF NOT EXISTS task_secrets (task_id TEXT NOT NULL, name TEXT NOT NULL, expires_at INTEGER NOT NULL DEFAULT 0, data BLOB NOT NULL, PRIMARY KEY(task_id,name));
 PRAGMA user_version=1;
 `
 
@@ -56,10 +50,6 @@ func Open(path string) (*Store, error) {
 		return nil, fmt.Errorf("initialize sqlite schema: %w", err)
 	}
 	store := &Store{db: db}
-	if err := store.openSecretKey(path + ".secrets.key"); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("initialize task encryption: %w", err)
-	}
 	if err := store.RecoverRunningTasks(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("recover running tasks: %w", err)
@@ -78,22 +68,7 @@ func (s *Store) Backup(ctx context.Context, destination string) error {
 		return err
 	}
 	_, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, destination)
-	if err != nil {
-		return err
-	}
-	if err = os.Chmod(destination, 0600); err != nil {
-		return err
-	}
-	key, err := os.OpenFile(destination+".secrets.key", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		return err
-	}
-	_, err = key.Write(s.secretKey)
-	closeErr := key.Close()
-	if err != nil {
-		return err
-	}
-	return closeErr
+	return err
 }
 func encode(value any) ([]byte, error)    { return json.Marshal(value) }
 func decode(data []byte, value any) error { return json.Unmarshal(data, value) }
@@ -452,11 +427,6 @@ func (s *Store) RecoverRunningTasks() error {
 		task.Status = types.TaskPending
 		task.StartedAt = nil
 		task.Error = "controller restarted; task requeued"
-		if task.ManualRecovery {
-			now := time.Now().UTC()
-			task.Status, task.FinishedAt = types.TaskFailed, &now
-			task.Error = "controller restarted during operation; inspect target state before retrying"
-		}
 		if err := putTask(tx, task); err != nil {
 			return err
 		}
@@ -584,16 +554,6 @@ func (s *Store) CloneTask(id, idempotencyKey string, expectedDigest string) (typ
 	}
 	randomID := fmt.Sprintf("retry_%d", time.Now().UnixNano())
 	task := types.Task{ID: randomID, ServerID: original.ServerID, Action: original.Action, Args: original.Args, Status: types.TaskPending, CreatedAt: time.Now().UTC(), IdempotencyKey: idempotencyKey, ExpectedStateDigest: expectedDigest, Attempt: original.Attempt + 1, RetryOf: original.ID}
-	task.Private, task.Actor, task.ManualRecovery = original.Private, original.Actor, original.ManualRecovery
-	if task.Private {
-		payload, err := s.TaskSecret(original.ID, "args", false)
-		if err != nil {
-			return types.Task{}, err
-		}
-		if err := s.PutTaskSecret(task.ID, "args", payload, time.Time{}); err != nil {
-			return types.Task{}, err
-		}
-	}
 	if err := s.PutTask(task); err != nil {
 		return types.Task{}, err
 	}
