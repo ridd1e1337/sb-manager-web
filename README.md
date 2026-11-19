@@ -26,6 +26,7 @@
 - SQLite 在线备份、数据库健康检查和主动/被动控制端部署路径
 - 任务筛选/详情抽屉、灰度进度统计、浅色主题和自动刷新
 - 运维中心：健康/配置校验、日志、流量策略、防火墙、服务重启、分享和订阅
+- sb-manager alpha.73+：VLESS 传输/回落/嗅探/证书固定、用户流量配额/续期/在线 IP 限制/统计与用户订阅、Xray 出站/WARP/负载均衡/分流与流量统计、Telegram 命令机器人
 - systemd/OpenRC 服务文件
 - root helper Unix Socket 权限隔离（Web 服务使用 `sbweb` 用户）
 - amd64/arm64/armv7 交叉编译
@@ -34,6 +35,10 @@
 前端布局、视觉规范和后续迭代边界见 [`docs/FRONTEND_DESIGN.md`](docs/FRONTEND_DESIGN.md)。
 
 项目边界、组件和部署模型由本仓库的 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 独立维护。
+
+使用 SNTP 页面、airport-stack Go 商城及 Xray/sing-box 统一计费节点组成机场用户门户，见 [`docs/AIRPORT.md`](docs/AIRPORT.md)。控制台可配置用户中心、套餐订单和商业节点后台入口；业务账号与本项目运维权限独立。
+
+追齐 sb-manager alpha.34 的本机/远程运维入口、版本要求和私有任务处理见 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)。
 
 ## 开发
 
@@ -65,7 +70,7 @@ curl -fsSL https://github.com/ridd1e1337/sb-manager-web/raw/main/install.sh | su
 
 如果服务器尚未安装 `sb-manager`，Web 安装器会下载并调用 [`sb-manager`](https://github.com/ridd1e1337/sb-manager) 独立仓库的官方安装器；不会把它的源码、服务定义或业务逻辑复制到 Web 项目。可以用 `SBM_INSTALL_REF`/`SBM_INSTALL_SHA256` 固定上游版本，用 `SBM_WEB_SB_INSTALL_URL` 指定内部镜像，或用 `SBM_WEB_AUTO_INSTALL_SB=0` 要求预先供应依赖。
 
-安装器会校验 Web 发布包 SHA256，并且只为当前实际运行的 systemd 或 OpenRC 生成服务。`latest` 指向 GitHub Release，而不是 `main` 分支源码；因此推送源码后需要先创建 Release，安装器才会获取新二进制。当前预览版本为 `0.1.0-alpha.25`，开发时可以使用：
+安装器会校验 Web 发布包 SHA256，并且只为当前实际运行的 systemd 或 OpenRC 生成服务。`latest` 指向 GitHub Release，而不是 `main` 分支源码；因此推送源码后需要先创建 Release，安装器才会获取新二进制。当前源码版本为 `0.1.0-alpha.28`，发行是否可用以 GitHub Release 为准。开发时可以使用：
 
 ```bash
 SBM_WEB_BINARY_URL=/path/to/sb-web SBM_WEB_SKIP_VERIFY=1 sudo -E bash install.sh --no-start
@@ -80,7 +85,7 @@ SBM_WEB_BINARY_URL=/path/to/sb-web SBM_WEB_SKIP_VERIFY=1 sudo -E bash install.sh
 ```bash
 sudo sb-web update
 # 指定版本
-sudo sb-web update --version 0.1.0-alpha.26.1
+sudo sb-web update --version 0.1.0-alpha.28
 ```
 
 控制台首页的“面板更新”区域可以检查最新 Release 并执行更新。更新会短暂重启 WebUI 服务；如果特权 helper 未运行，页面会给出上述 SSH 命令提示。面板更新使用 GitHub Release，不会把 `main` 分支未经发布的源码直接当作生产二进制。

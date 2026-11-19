@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.28
+
+- Add reviewed operations for sb-manager alpha.73–76: VLESS transport,
+  fallback, sniffing and certificate pinning; per-user quota, renewal,
+  online-IP limit, usage reset, statistics and per-user subscriptions; Xray
+  native outbounds, WARP registration, balancers, routing rules, default exit
+  and inbound/outbound traffic; Telegram command bot enable/disable/status.
+- Each operation is gated on the target's sb-manager version. Outbound JSON
+  and user subscriptions are private, admin-only results.
+- Show user limits and automatic suspension reasons on the node page.
+
+## 0.1.0-alpha.27
+
+- Add a target-aware operations console and reviewed command mappings for
+  sb-manager alpha.31–34: TCP tuning, network tests, authenticated proxy nodes,
+  node expiry, shared quotas, shaping, managed Tunnel routes, Sub-Store and live feeds.
+- Gate new operations on target manager/Agent capabilities, with explicit
+  administrator permissions, CSRF checks and read-only operator roles.
+- Encrypt private operation arguments/results at rest; reveal results once,
+  with expiry, and include the encryption key in protected database backups.
+- Require manual reconciliation after interrupted non-idempotent operations,
+  preserving the existing automatic recovery path for safe legacy tasks.
+- Add configurable airport business links and synchronize the source version
+  and default Makefile build version.
+
 ## 0.1.0-alpha.26.1
 
 - Migrate repository, installation and update URLs to ridd1e1337 on GitHub.

@@ -28,7 +28,7 @@ type Runner struct {
 
 var safeVersion = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$`)
 var safeID = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,47}$`)
-var safeProtocol = regexp.MustCompile(`^(vmess|ss|anytls|hy2|trojan|tuic|vless|naive|shadowtls|snell)$`)
+var safeProtocol = regexp.MustCompile(`^(vmess|ss|anytls|hy2|trojan|tuic|vless|naive|shadowtls|snell|socks|http|mixed)$`)
 var safeDomain = regexp.MustCompile(`^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$`)
 
 func ValidVersion(value string) bool {
@@ -74,6 +74,9 @@ func JSONArgs(command ...string) []string {
 }
 
 func ActionCommand(action string, args map[string]any) ([]string, error) {
+	if op, ok := LookupOperation(action); ok {
+		return operationCommand(op, args)
+	}
 	switch action {
 	case "status":
 		return JSONArgs("status"), nil
@@ -585,6 +588,13 @@ func nodeAddCommand(args map[string]any) ([]string, error) {
 		return nil, errors.New("invalid node protocol or id")
 	}
 	command := []string{"node", "add", protocol, "--id", id}
+	if value, present := args["listen"]; present {
+		listen, ok := value.(string)
+		if !ok || (protocol != "socks" && protocol != "http" && protocol != "mixed") || (listen != "127.0.0.1" && listen != "::1" && listen != "0.0.0.0" && listen != "::") {
+			return nil, errors.New("listen is only supported for authenticated socks/http/mixed nodes")
+		}
+		command = append(command, "--listen", listen)
+	}
 	for _, field := range []struct{ key, flag string }{{"name", "--name"}, {"domain", "--domain"}, {"address", "--address"}, {"path", "--path"}, {"method", "--method"}, {"network", "--network"}, {"obfs", "--obfs"}, {"obfs_host", "--obfs-host"}, {"snell_version", "--snell-version"}, {"snell_mode", "--snell-mode"}, {"bbr_profile", "--bbr-profile"}, {"masquerade", "--masquerade"}, {"security", "--security"}, {"flow", "--flow"}, {"handshake_server", "--handshake-server"}, {"congestion_control", "--congestion-control"}, {"strict_mode", "--strict-mode"}, {"wildcard_sni", "--wildcard-sni"}, {"realm_id", "--realm-id"}, {"realm_ip_version", "--realm-ip-version"}} {
 		if value, ok := args[field.key].(string); ok && value != "" {
 			if len(value) > 253 || strings.ContainsAny(value, "\r\n\x00") {
